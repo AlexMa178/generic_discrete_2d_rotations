@@ -51,29 +51,30 @@ impl<const N: u16> Rot<N> {
 
     
     /// Gives None if `angle`, once normalized to `0..=359`, is not a multiple of `N`.
-    pub const fn from_deg_exact(angle: u16) -> Option<Rot<N>> {
+    pub const fn from_deg_exact(angle: u16) -> Option<Self> {
         let norm_angle = angle % 360;
-        if norm_angle.is_multiple_of(N) { Some(Rot { n: norm_angle / N }) } else { None }
+        if norm_angle.is_multiple_of(N) { Some(Self { n: norm_angle / N }) } else { None }
     }
 
     /// 'Snaps' to the closest valid `Rot<N>`.
-    pub const fn from_deg(angle: f32) -> Rot<N> {
+    pub const fn from_deg(angle: f32) -> Self {
         let quantize = (angle / (360. / N as f32)).round() as i32;
         let normalize = quantize.rem_euclid(N as i32) as u16;
-        Rot { n: normalize }
+        Self { n: normalize }
     }
 
     /// 'Snaps' to the closest valid `Rot<N>`.
-    pub const fn from_rad(angle: f32) -> Rot<N> {
+    pub const fn from_rad(angle: f32) -> Self {
         let quantize = (angle / (TAU / N as f32)).round() as i32;
         let normalize = quantize.rem_euclid(N as i32) as u16;
-        Rot { n: normalize }
+        Self { n: normalize }
     }
 
-    /// Panics if `N` is not `1`, `2`, `4`, or `8`.
     /// Gives `None` if `dx` and `dy` don't point in a valid direction.
     /// For example: it gives `None` if `N` is `4` and both `dx` and `dy` are `Ordering::Greater`, because that would be diagonal.
-    pub fn from_signs(from: RotFrom, dir: RotDir, dx: Ordering, dy: Ordering) -> Option<Rot<N>> {
+    /// # Panics
+    /// Panics if `N` is not `1`, `2`, `4`, or `8`.
+    pub const fn from_signs(from: RotFrom, dir: RotDir, dx: Ordering, dy: Ordering) -> Option<Self> {
         use { Ordering::Less as Neg, Ordering::Equal as Zer, Ordering::Greater as Pos };
         let rot_8_pos_y_cw = match (dx, dy) {
             (Zer, Pos) => Rot::R8_0,
@@ -90,15 +91,17 @@ impl<const N: u16> Rot<N> {
         rot_8.split_as::<N>()
     }
 
-    /// Panics if `N` is not a multiple of `4`.
     /// Gives `None` is `dx` and `dy` are `0`.
     /// 'Snaps' to the closest valid `Rot<N>`.
-    pub fn from_vector(from: RotFrom, dir: RotDir, dx: f32, dy: f32) -> Option<Rot<N>> {
+    /// # Panics
+    /// Panics if `N` is not a multiple of `4`.
+    pub fn from_vector(from: RotFrom, dir: RotDir, dx: f32, dy: f32) -> Option<Self> {
         if f32::hypot(dx, dy) <= f32::EPSILON { return None; }
-        let rot_pos_x_ccw = Rot::<N>::from_rad(f32::atan2(dy, dx));
+        let rot_pos_x_ccw = Self::from_rad(f32::atan2(dy, dx));
         Some(rot_pos_x_ccw.change_relative_to(RotFrom::PosX, RotDir::CounterClockwise, from, dir))
     }
 
+    /// # Panics
     /// Panics if `360` is not a multiple of `N`.
     pub const fn to_deg_exact(self) -> u16 {
         if !360u16.is_multiple_of(N) { panic!("failed to_deg_exact"); }
@@ -113,22 +116,25 @@ impl<const N: u16> Rot<N> {
         self.n as f32 * (TAU / N as f32)
     }
 
-    /// Panics if `N` is not a multiple of `M`.
     /// Gives `None` if `self` cannot be divided.
     /// For example: `Rot::R8_90.split_as::<4>()` gives `Some(Rot::R4_90)`, but `Rot::R8_45.split_as::<4>()` gives `None`.
+    /// # Panics
+    /// Panics if `N` is not a multiple of `M`.
     pub const fn split_as<const M: u16>(self) -> Option<Rot<M>> {
         if !N.is_multiple_of(M) { panic!("failed split_as"); }
         if self.n.is_multiple_of(N / M) { Some(Rot { n: self.n / (N / M) }) } else { None }
     }
 
+    /// # Panics
     /// Panics if `M` is not a multiple of `N`.
     pub const fn embed_as<const M: u16>(self) -> Rot<M> {
         if !M.is_multiple_of(N) { panic!("failed embed_as"); }
         Rot { n: self.n * (M / N) }
     }
 
+    /// # Panics
     /// Panics if `N` is not a multiple of `4`.
-    pub fn change_relative_to(self, old_from: RotFrom, old_dir: RotDir, new_from: RotFrom, new_dir: RotDir) -> Self {
+    pub const fn change_relative_to(self, old_from: RotFrom, old_dir: RotDir, new_from: RotFrom, new_dir: RotDir) -> Self {
         pub const fn old_to_pos_x_ccw<const N: u16>(r: Rot<N>, old_from: RotFrom, old_dir: RotDir) -> Rot<N> {
             let d = old_from.angle_to(RotFrom::PosX, old_dir).embed_as::<N>();
             match old_dir {
@@ -146,6 +152,7 @@ impl<const N: u16> Rot<N> {
         pos_x_ccw_to_new(old_to_pos_x_ccw(self, old_from, old_dir), new_from, new_dir)
     }
 
+    /// # Panics
     /// Panics if `N` is not a multiple of `4`.
     pub fn unit_vector(self, from: RotFrom, dir: RotDir) -> [ f32; 2 ] {
         let (x, y) = self.change_relative_to(from, dir, RotFrom::PosY, RotDir::Clockwise).to_rad().sin_cos();
@@ -255,7 +262,7 @@ impl<const N: u16> Mul<Rot<N>> for u16 {
 }
 impl<const N: u16> AddAssign for Rot<N> {
     fn add_assign(&mut self, rhs: Self) {
-        *self = add_const::<N>(*self, rhs)
+        *self = add_const::<N>(*self, rhs);
     }
 }
 impl<const N: u16> SubAssign for Rot<N> {
