@@ -47,23 +47,24 @@ impl RotDir {
 pub struct Rot<const N: u16> {
     n: u16,
 }
-impl Rot<0> {
+impl<const N: u16> Rot<N> {
 
+    
     /// Gives None if `angle`, once normalized to `0..=359`, is not a multiple of `N`.
-    pub const fn from_deg_exact<const N: u16>(angle: u16) -> Option<Rot<N>> {
+    pub const fn from_deg_exact(angle: u16) -> Option<Rot<N>> {
         let norm_angle = angle % 360;
         if norm_angle.is_multiple_of(N) { Some(Rot { n: norm_angle / N }) } else { None }
     }
 
     /// 'Snaps' to the closest valid `Rot<N>`.
-    pub const fn from_deg<const N: u16>(angle: f32) -> Rot<N> {
+    pub const fn from_deg(angle: f32) -> Rot<N> {
         let quantize = (angle / (360. / N as f32)).round() as i32;
         let normalize = quantize.rem_euclid(N as i32) as u16;
         Rot { n: normalize }
     }
 
     /// 'Snaps' to the closest valid `Rot<N>`.
-    pub const fn from_rad<const N: u16>(angle: f32) -> Rot<N> {
+    pub const fn from_rad(angle: f32) -> Rot<N> {
         let quantize = (angle / (TAU / N as f32)).round() as i32;
         let normalize = quantize.rem_euclid(N as i32) as u16;
         Rot { n: normalize }
@@ -72,7 +73,7 @@ impl Rot<0> {
     /// Panics if `N` is not `1`, `2`, `4`, or `8`.
     /// Gives `None` if `dx` and `dy` don't point in a valid direction.
     /// For example: it gives `None` if `N` is `4` and both `dx` and `dy` are `Ordering::Greater`, because that would be diagonal.
-    pub fn from_signs<const N: u16>(from: RotFrom, dir: RotDir, dx: Ordering, dy: Ordering) -> Option<Rot<N>> {
+    pub fn from_signs(from: RotFrom, dir: RotDir, dx: Ordering, dy: Ordering) -> Option<Rot<N>> {
         use { Ordering::Less as Neg, Ordering::Equal as Zer, Ordering::Greater as Pos };
         let rot_8_pos_y_cw = match (dx, dy) {
             (Zer, Pos) => Rot::R8_0,
@@ -92,14 +93,11 @@ impl Rot<0> {
     /// Panics if `N` is not a multiple of `4`.
     /// Gives `None` is `dx` and `dy` are `0`.
     /// 'Snaps' to the closest valid `Rot<N>`.
-    pub fn from_vector<const N: u16>(from: RotFrom, dir: RotDir, dx: f32, dy: f32) -> Option<Rot<N>> {
+    pub fn from_vector(from: RotFrom, dir: RotDir, dx: f32, dy: f32) -> Option<Rot<N>> {
         if f32::hypot(dx, dy) <= f32::EPSILON { return None; }
-        let rot_pos_x_ccw = Rot::from_rad::<N>(f32::atan2(dy, dx));
+        let rot_pos_x_ccw = Rot::<N>::from_rad(f32::atan2(dy, dx));
         Some(rot_pos_x_ccw.change_relative_to(RotFrom::PosX, RotDir::CounterClockwise, from, dir))
     }
-
-}
-impl<const N: u16> Rot<N> {
 
     /// Panics if `360` is not a multiple of `N`.
     pub const fn to_deg_exact(self) -> u16 {
