@@ -49,6 +49,9 @@ pub struct Rot<const N: u16> {
 }
 impl<const N: u16> Rot<N> {
 
+    pub fn all() -> Vec<Rot<N>> {
+        (0..N).map(|i| Rot { n: i }).collect()
+    }
     
     /// Gives None if `angle`, once normalized to `0..=359`, is not a multiple of `N`.
     pub const fn from_deg_exact(angle: u16) -> Option<Self> {
