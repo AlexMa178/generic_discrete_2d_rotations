@@ -1,6 +1,6 @@
 [package]
 name = "generic_discrete_2d_rotations"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 description = "types and operations representing discrete rotation steps"
 repository = "https://github.com/AlexMa178/generic_discrete_2d_rotations"

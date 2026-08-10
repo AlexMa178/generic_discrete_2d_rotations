@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::ops::{ Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign };
 use std::f32::consts::{ TAU };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RotFrom {
     PosY, NegY, PosX, NegX
 }
@@ -27,7 +27,7 @@ impl RotFrom {
     
 }
  
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RotDir {
     Clockwise, CounterClockwise
 }
@@ -43,7 +43,7 @@ impl RotDir {
 }
 
 /// `N` may not be zero.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Rot<const N: u16> {
     n: u16,
 }
@@ -210,12 +210,12 @@ impl Rot<8> {
 
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum R4 {
     D0, D90, D180, D270
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum R8 {
     D0, D45, D90, D135, D180, D225, D270, D315
 }
