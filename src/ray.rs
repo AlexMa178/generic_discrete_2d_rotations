@@ -109,6 +109,26 @@ impl<const N: u16> Ray<N> {
     }
 
 }
+impl Ray<4> {
+
+    pub const EAST_4 : Self = Self { pos_x_ccw: Angle::A4_0   };
+    pub const NORTH_4: Self = Self { pos_x_ccw: Angle::A4_90  };
+    pub const WEST_4 : Self = Self { pos_x_ccw: Angle::A4_180 };
+    pub const SOUTH_4: Self = Self { pos_x_ccw: Angle::A4_270 };
+
+}
+impl Ray<8> {
+
+    pub const EAST_8     : Self = Self { pos_x_ccw: Angle::A8_0   };
+    pub const NORTHEAST_8: Self = Self { pos_x_ccw: Angle::A8_45  };
+    pub const NORTH_8    : Self = Self { pos_x_ccw: Angle::A8_90  };
+    pub const NORTHWEST_8: Self = Self { pos_x_ccw: Angle::A8_135 };
+    pub const WEST_8     : Self = Self { pos_x_ccw: Angle::A8_180 };
+    pub const SOUTHWEST_8: Self = Self { pos_x_ccw: Angle::A8_225 };
+    pub const SOUTH_8    : Self = Self { pos_x_ccw: Angle::A8_270 };
+    pub const SOUTHEAST_8: Self = Self { pos_x_ccw: Angle::A8_315 };
+
+}
 
 impl<const N: u16> Neg for Ray<N> {
     type Output = Ray<N>;
