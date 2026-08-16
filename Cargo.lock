@@ -4,4 +4,4 @@ version = 4
 
 [[package]]
 name = "generic_discrete_2d_rotations"
-version = "0.1.5"
+version = "0.1.6"
