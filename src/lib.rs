@@ -52,7 +52,7 @@ impl<const N: u16> Angle<N> {
     }
 
     /// Gives `None` if `self` cannot be divided.
-    /// For example: `Angle::A8_90.split_as::<4>()` gives `Some(Angle::RA_90)`, but `Angle::A8_45.split_as::<4>()` gives `None`.
+    /// For example: `Angle::A8_90.split_as::<4>()` gives `Some(Angle::A_90)`, but `Angle::A8_45.split_as::<4>()` gives `None`.
     /// # Panics
     /// Panics if `N` is not a multiple of `M`.
     pub const fn split_as<const M: u16>(self) -> Option<Angle<M>> {

@@ -108,6 +108,23 @@ impl<const N: u16> Ray<N> {
         [ x, y ]
     }
 
+    /// Gives `None` if `self` cannot be divided.
+    /// For example: `Ray::UP_8.split_as::<4>()` gives `Some(Ray::UP_4)`, but `Ray::UP_RIGHT_8.split_as::<4>()` gives `None`.
+    /// # Panics
+    /// Panics if `N` is not a multiple of `M`.
+    pub const fn split_as<const M: u16>(self) -> Option<Ray<M>> {
+        match self.pos_x_ccw.split_as::<M>() {
+            Some(split) => Some(Ray { pos_x_ccw: split }),
+            None => None,
+        }
+    }
+
+    /// # Panics
+    /// Panics if `M` is not a multiple of `N`.
+    pub const fn embed_as<const M: u16>(self) -> Ray<M> {
+        Ray { pos_x_ccw: self.pos_x_ccw.embed_as::<M>() }
+    }
+
 }
 impl Ray<4> {
 
