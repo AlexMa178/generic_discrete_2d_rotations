@@ -1,47 +1,10 @@
-use std::cmp::Ordering;
+mod ray;
+pub use ray::*;
+
 use std::ops::{ Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign };
 use std::f32::consts::{ TAU };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RotFrom {
-    PosY, NegY, PosX, NegX
-}
-
-impl RotFrom {
-
-    pub const fn angle_to(self, other: RotFrom, dir: RotDir) -> Rot<4> {
-        const fn from_pos_x_ccw(f: RotFrom) -> Rot<4> {
-            match f {
-                RotFrom::PosX => Rot::R4_0,
-                RotFrom::PosY => Rot::R4_90,
-                RotFrom::NegX => Rot::R4_180,
-                RotFrom::NegY => Rot::R4_270,
-            }
-        }
-        let diff_ccw = sub_const(from_pos_x_ccw(self), from_pos_x_ccw(other));
-        match dir {
-            RotDir::Clockwise => diff_ccw,
-            RotDir::CounterClockwise => neg_const(diff_ccw),
-        }
-    }
-    
-}
- 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RotDir {
-    Clockwise, CounterClockwise
-}
-impl RotDir {
-
-    pub const fn opposite(self) -> Self {
-        match self {
-            Self::Clockwise => Self::CounterClockwise,
-            Self::CounterClockwise => Self::Clockwise,
-        }
-    }
-
-}
-
+/// A Rot represents an angle.
 /// `N` may not be zero.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Rot<const N: u16> {
@@ -59,49 +22,18 @@ impl<const N: u16> Rot<N> {
         if norm_angle.is_multiple_of(N) { Some(Self { n: norm_angle / N }) } else { None }
     }
 
-    /// 'Snaps' to the closest valid `Rot<N>`.
+    /// Snaps to the closest valid `Rot<N>`.
     pub const fn from_deg(angle: f32) -> Self {
         let quantize = (angle / (360. / N as f32)).round() as i32;
         let normalize = quantize.rem_euclid(N as i32) as u16;
         Self { n: normalize }
     }
 
-    /// 'Snaps' to the closest valid `Rot<N>`.
+    /// Snaps to the closest valid `Rot<N>`.
     pub const fn from_rad(angle: f32) -> Self {
         let quantize = (angle / (TAU / N as f32)).round() as i32;
         let normalize = quantize.rem_euclid(N as i32) as u16;
         Self { n: normalize }
-    }
-
-    /// Gives `None` if `dx` and `dy` don't point in a valid direction.
-    /// For example: it gives `None` if `N` is `4` and both `dx` and `dy` are `Ordering::Greater`, because that would be diagonal.
-    /// # Panics
-    /// Panics if `N` is not `1`, `2`, `4`, or `8`.
-    pub const fn from_signs(from: RotFrom, dir: RotDir, dx: Ordering, dy: Ordering) -> Option<Self> {
-        use { Ordering::Less as Neg, Ordering::Equal as Zer, Ordering::Greater as Pos };
-        let rot_8_pos_y_cw = match (dx, dy) {
-            (Zer, Pos) => Rot::R8_0,
-            (Pos, Pos) => Rot::R8_45, 
-            (Pos, Zer) => Rot::R8_90,
-            (Pos, Neg) => Rot::R8_135,
-            (Zer, Neg) => Rot::R8_180,
-            (Neg, Neg) => Rot::R8_225,
-            (Neg, Zer) => Rot::R8_270,
-            (Neg, Pos) => Rot::R8_315,
-            (Zer, Zer) => return None,
-        };
-        let rot_8 = rot_8_pos_y_cw.change_relative_to(RotFrom::PosY, RotDir::Clockwise, from, dir);
-        rot_8.split_as::<N>()
-    }
-
-    /// Gives `None` is `dx` and `dy` are `0`.
-    /// 'Snaps' to the closest valid `Rot<N>`.
-    /// # Panics
-    /// Panics if `N` is not a multiple of `4`.
-    pub fn from_vector(from: RotFrom, dir: RotDir, dx: f32, dy: f32) -> Option<Self> {
-        if f32::hypot(dx, dy) <= f32::EPSILON { return None; }
-        let rot_pos_x_ccw = Self::from_rad(f32::atan2(dy, dx));
-        Some(rot_pos_x_ccw.change_relative_to(RotFrom::PosX, RotDir::CounterClockwise, from, dir))
     }
 
     /// # Panics
@@ -133,33 +65,6 @@ impl<const N: u16> Rot<N> {
     pub const fn embed_as<const M: u16>(self) -> Rot<M> {
         if !M.is_multiple_of(N) { panic!("failed embed_as"); }
         Rot { n: self.n * (M / N) }
-    }
-
-    /// # Panics
-    /// Panics if `N` is not a multiple of `4`.
-    pub const fn change_relative_to(self, old_from: RotFrom, old_dir: RotDir, new_from: RotFrom, new_dir: RotDir) -> Self {
-        pub const fn old_to_pos_x_ccw<const N: u16>(r: Rot<N>, old_from: RotFrom, old_dir: RotDir) -> Rot<N> {
-            let d = old_from.angle_to(RotFrom::PosX, old_dir).embed_as::<N>();
-            match old_dir {
-                RotDir::Clockwise => sub_const(d, r),
-                RotDir::CounterClockwise => sub_const(r, d),
-            }
-        }
-        pub const fn pos_x_ccw_to_new<const N: u16>(r: Rot<N>, new_from: RotFrom, new_dir: RotDir) -> Rot<N> {
-            let d = RotFrom::PosX.angle_to(new_from, RotDir::CounterClockwise).embed_as::<N>();
-            match new_dir {
-                RotDir::Clockwise => sub_const(d, r),
-                RotDir::CounterClockwise => sub_const(r, d),
-            }
-        }
-        pos_x_ccw_to_new(old_to_pos_x_ccw(self, old_from, old_dir), new_from, new_dir)
-    }
-
-    /// # Panics
-    /// Panics if `N` is not a multiple of `4`.
-    pub fn unit_vector(self, from: RotFrom, dir: RotDir) -> [ f32; 2 ] {
-        let (x, y) = self.change_relative_to(from, dir, RotFrom::PosY, RotDir::Clockwise).to_rad().sin_cos();
-        [ x, y ]
     }
 
 }
@@ -245,14 +150,24 @@ impl<const N: u16> Add for Rot<N> {
         add_const::<N>(self, rhs)
     }
 }
+impl<const N: u16> AddAssign for Rot<N> {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = add_const::<N>(*self, rhs);
+    }
+}
 impl<const N: u16> Sub for Rot<N> {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self::Output {
         sub_const::<N>(self, rhs)
     }
 }
+impl<const N: u16> SubAssign for Rot<N> {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = sub_const::<N>(*self, rhs);
+    }
+}
 impl<const N: u16> Mul<u16> for Rot<N> {
-    type Output = Self;
+    type Output = Rot<N>;
     fn mul(self, rhs: u16) -> Self::Output {
         mul_const::<N>(self, rhs)
     }
@@ -261,16 +176,6 @@ impl<const N: u16> Mul<Rot<N>> for u16 {
     type Output = Rot<N>;
     fn mul(self, rhs: Rot<N>) -> Self::Output {
         mul_const::<N>(rhs, self)
-    }
-}
-impl<const N: u16> AddAssign for Rot<N> {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = add_const::<N>(*self, rhs);
-    }
-}
-impl<const N: u16> SubAssign for Rot<N> {
-    fn sub_assign(&mut self, rhs: Self) {
-        *self = sub_const::<N>(*self, rhs);
     }
 }
 impl<const N: u16> MulAssign<u16> for Rot<N> {
